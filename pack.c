@@ -3,7 +3,7 @@
 
 #define xstr(a)          #a
 #define str(a)          xstr(a)
-#define DATA(data)  extern char *data; __asm__("_" #data ": .int _"#data"+4 \n\t");
+#define DATA(data)	extern char *data; __asm__("_" #data ": .int _"#data"+4 \n\t");
 #define TYPED(id, type, a)     __asm__(".int " str(id) "\n\t ." #type " " #a "\n\t")
 #define SIZEDTYPE(id, type, a) __asm__(".int " str(id) "\n\t .int 2f-1f\n\t1: ."#type " " #a "\n\t 2:")
 #define BLOB(id, a) 	    SIZEDTYPE(id, incbin,a)	
@@ -22,30 +22,22 @@ struct Entry{ int type; size_t size; char content[0]; };
 #define ENDENTRY(ent, type)  ((int)(ent) >= (int)&DATALEN(type))
 
 int verbose = 0;
+char cwd[1024];
 
-void PathStripPath(char *s){
-  strcpy(s, (strrchr(s, '/') ?: s-1)+1);
+char* p_get_filename(char *dest, char *src){
+  return strcpy(dest, (strrchr(src, '/') ?: src-1)+1);
 }
 
+
+
+#include "handlers.h"
+
 void mkfiles(){
+  getcwd(cwd, 1024);
   GETENTRY(ind,     file_index);
   GETENTRY(content, file_content);
-  char cwd[1024];
-  getcwd(cwd, 1024);
   while(!ENDENTRY(ind, file_index) && !ENDENTRY(content, file_content)){
-   if(ind->type == 1){ //Directory
-    chdir(cwd);
-    mkdir(ind->content);
-    chdir(ind->content);
-   }else{
-    char s[ind->size];
-    memcpy(s, ind->content, ind->size);
-    PathStripPath(s);
-    FILE *fp = fopen(s, "wb");
-    if(verbose){fprintf(stderr, "Extracting %s\n", s);}
-    fwrite(content->content, 1, content->size, fp);
-    fclose(fp);
-   }
+    handlers[ind->type](ind, content);
     ind = NEXTENTRY(ind);
     content = NEXTENTRY(content);
   }
@@ -68,16 +60,6 @@ int main(void){
 
 
 #define PACKAGE() "pack.h"
-
-DATA(strings)
-  STRING(9, "echo Extraction Finished.");
-  STRING(9, "echo Will run main.rb");
-  STRING(9, "type main.rb");
-  STRING(9, "echo.");
-  STRING(9, "ruby --disable-gems -I. main.rb");
-END(strings)
-
-
 
 #define DIR(a)         STRING(1, #a);
 #define FILE(a)        STRING(0, #a);
