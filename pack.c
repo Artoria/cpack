@@ -34,12 +34,28 @@ char* p_get_filename(char *dest, char *src){
 
 void mkfiles(){
   getcwd(cwd, 1024);
-  GETENTRY(ind,     file_index);
-  GETENTRY(content, file_content);
-  while(!ENDENTRY(ind, file_index) && !ENDENTRY(content, file_content)){
-    handlers[ind->type](ind, content);
-    ind = NEXTENTRY(ind);
-    content = NEXTENTRY(content);
+  int size = 0;
+  int usize = 0;
+  {
+    GETENTRY(ind,     file_index);
+    GETENTRY(content, file_content);
+    while(!ENDENTRY(ind, file_index) && !ENDENTRY(content, file_content)){
+      handlers[ind->type](ind, content);
+      size += content->size;
+      ind = NEXTENTRY(ind);
+      content = NEXTENTRY(content);
+    }
+  }
+  {
+    GETENTRY(ind,     file_index);
+    GETENTRY(content, file_content);
+    while(!ENDENTRY(ind, file_index) && !ENDENTRY(content, file_content)){
+      handlers[ind->type](ind, content);
+      usize += content->size;
+      printf("%.2lf%% (%d / %d) %s\r", usize * 10000.0 / size / 100.0, usize, size, ind->content);
+      ind = NEXTENTRY(ind);
+      content = NEXTENTRY(content);
+    }
   }
 }
 
@@ -60,6 +76,7 @@ int main(void){
 
 
 #define PACKAGE() "pack.h"
+#include "header.h"
 
 #define DIR(a)         STRING(1, #a);
 #define FILE(a)        STRING(0, #a);
