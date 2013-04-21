@@ -1,0 +1,5 @@
+DIR(main)              
+  FILE(aria2c.exe)
+  FILE(7za.exe)
+  FILE(main.rb)
+DIR()
